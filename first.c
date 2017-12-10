@@ -1,21 +1,14 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include<signal.h>
 #include<stdbool.h>
-
 
 #define MAX_TMP 15
 #define MAX_LINKED_NUMBER 5
-int savet_ = 0, save_g= 0, save_d= 0, save_y= 0, save_r= 0, save_a= 0;//옵션을 받았다면 1값으로 바뀌어야 한다
+int savet_ = 1, save_g= 1, save_d= 1, save_y= 1, save_r= 1, save_a= 1;//옵션을 받았다면 1값으로 바뀌어야 한다
 int save_n = 0, save_s = 0, save_b = 0, save_m = 0;
-int updatet_ = 0, update_g= 0, update_d= 0, update_y= 0, update_r= 0, update_a= 0;//옵션을 받았다면 1값으로 바뀌어야 한다
-int update_n = 0, update_s = 0, update_b = 0, update_m = 0;
-int update_num=0;
 FILE *ofp;
 int file_number=0;
-
-struct sigaction ctrlc;
 
 struct movie{
 	int serial_number; // 영화 시리얼 넘버
@@ -75,8 +68,6 @@ struct main_struct_ptr {
 	struct director *director_ptr;
 };
 
-
-
 void get_data(struct main_struct_ptr *data_ptr);
 void scan_word(FILE *optr, char *tmp_data);
 int str_devider (char *str);
@@ -104,7 +95,9 @@ void scan_title_a(FILE *optr, struct actor *actor_ptr);
 void scan_sex_a(FILE *optr, struct actor *actor_ptr);
 void scan_birth_a(FILE *optr, struct actor *actor_ptr);
 void scan_title_a(FILE *optr, struct actor *actor_ptr);
-void menu(char *input, struct main_struct_ptr *data_ptr );
+void SortNode(struct main_struct_ptr *data_ptr);
+void menu_func(char *input, struct main_struct_ptr *data_ptr );
+void PrintList(struct main_struct_ptr *data_ptr);
 void Print_m(struct main_struct_ptr *data_ptr);
 void Print_d(struct main_struct_ptr *data_ptr);
 void Print_a(struct main_struct_ptr *data_ptr);
@@ -122,6 +115,7 @@ void Sort_a_n(struct main_struct_ptr *data_ptr);
 void Sort_a_s(struct main_struct_ptr *data_ptr);
 void Sort_a_b(struct main_struct_ptr *data_ptr);
 void Sort_a_m(struct main_struct_ptr *data_ptr);
+void menu_func(char *input, struct main_struct_ptr *data_ptr );
 int	 update_movie(FILE *optr, struct movie *tmp_movie_ptr);
 struct movie* move2place_m (struct movie *movie_ptr, int update_sn);
 int scan_serial_number_mud(FILE *optr, struct movie *movie_ptr);
@@ -129,29 +123,7 @@ struct movie* move2preplace_m (struct movie *movie_ptr, int update_sn);
 struct director *move2preplace_d (struct director *director_ptr, int update_sn);
 struct actor * move2preplace_a (struct actor *actor_ptr, int update_sn);
 
-int mov(struct main_struct_ptr *, char*);
-int dir(struct main_struct_ptr *, char*);
-int act(struct main_struct_ptr *, char*);
-bool pattern_match(const char *, const char *);
-void QorM_m(struct main_struct_ptr *, char*);
-void QorM_d(struct main_struct_ptr *, char*);
-void QorM_a(struct main_struct_ptr *, char*);
-void ordersearch(struct main_struct_ptr*);
 
-void sigint_handler(int sig)
-{
-	char answer;
-	printf("\n2번 신호가 발생했습니다.\n");
-	printf("종료하시겠습니까? (y/n) : ");
-	scanf("%c", &answer);
-	if(answer == 'y' || answer == 'Y')
-		exit(1);
-	else
-		printf("프로그램을 종료하지 않습니다.\n");
-	fseek(stdin, 0, SEEK_END);
-	getchar();
-
-}
 
 void scan_word(FILE *optr, char *tmp_data){
 	for (int i = 0 ; i < 100 ; i++ ) {
@@ -216,7 +188,7 @@ void free_movie(struct movie *delete_movie_ptr){
 	free(delete_movie_ptr->actor_m);
 }//
 
-void delete_movie(FILE *optr, struct movie *tmp_movie_ptr){
+int delete_movie(FILE *optr, struct movie *tmp_movie_ptr){
 	int delete_sn;
 	char *trash = malloc (100);
 	delete_sn = scan_serial_number_mud (optr, tmp_movie_ptr);
@@ -231,7 +203,7 @@ void delete_movie(FILE *optr, struct movie *tmp_movie_ptr){
 	struct movie *pre_delm_ptr;
 	if (delete_sn == 1){
 		printf("you can't delete first data (serial number 1)\n");
-		return;
+		return 0;
 	}
 	else {
 		pre_delm_ptr = move2preplace_m(tmp_movie_ptr,(delete_sn));
@@ -241,6 +213,7 @@ void delete_movie(FILE *optr, struct movie *tmp_movie_ptr){
 	}
 	free(delete_movie_ptr);
 	printf("********************\n  ");
+	return delete_sn;
 }
 
 void get_movie(struct main_struct_ptr *data_ptr){
@@ -1390,13 +1363,13 @@ void Print_m(struct main_struct_ptr *data_ptr){
 	if(file_number==0){ // -f 가 없어 파일로 저장하지않고 화면에 출력
 		while(current != NULL){
 			temp=current->actor_m;
-			printf("%s:%s:%s:%d:%d:",  current->title,  current->genre,  current->director_m->name,  current->year,  current->movie_time);
+			printf("%s : %s : %s : %d : %d : ",  current->title,  current->genre,  current->director_m->name,  current->year,  current->movie_time);
 			while(temp -> next != NULL){
 				printf("%s",temp->name);
 				printf(",");
 				temp=temp->next;
 			}
-			printf("%s\n",temp->name);
+			printf("%s\n******************************************\n",temp->name);
 			current = current->next;
 		}
 	}
@@ -2046,7 +2019,7 @@ void Print_m_num(struct main_struct_ptr *data_ptr,char *token) // print명령을
 	}
 	while(current != NULL){
 		temp=current->actor_m;
-		// temp->actor_node=NULL; 초기값이 널이 아니어서 해준거
+		temp->actor_node=NULL;
 		if (current->serial_number==atoi(token)){ // 영화에 저장된 시리얼번호와 토큰에 저장된문자열을 숫자로 바꾸어 비교함
 			printf("%d, %s, %s\n",  current->serial_number,  current->title,  current->genre);
 			if(current->director_m->director_node!=NULL) // 영화에 대한 감독이 감독레코드에 있을경우
@@ -2103,7 +2076,7 @@ void Print_d_num(struct main_struct_ptr *data_ptr,char *token) //print명령을 
 	}
 	while(current != NULL){
 		temp=current->movie_d;
-		//temp->movie_node=NULL;  초기값이 널이 아니어서 해준거
+		temp->movie_node=NULL;
 		if(current->serial_number==atoi(token)){ //위와동일
 			printf("%d, %s, %c, %s\n",  current->serial_number, current->name,  current->sex,  current->birth);
 			while(temp != NULL){
@@ -2135,7 +2108,7 @@ void Print_a_num(struct main_struct_ptr *data_ptr, char *token) //print명령을
 	}
 	while(current != NULL){
 		temp=current->movie_a;
-		//temp->movie_node=NULL; 초기값이 널이 아니어서 해준거
+		temp->movie_node=NULL;
 
 		if(current->serial_number==atoi(token)){
 			printf("%d, %s, %c, %s\n",  current->serial_number, current->name,  current->sex,  current->birth);
@@ -2248,100 +2221,7 @@ void movie_save_m(char *name,struct main_struct_ptr * data_ptr,char save_case){
 		default : break;
 
 	}
-}
-
-void Print_m_list(struct main_struct_ptr *data_ptr){ // movie_list파일을 만들기 위한 함수
-	FILE *mptr;
-	mptr=fopen("movie_list","w"); // movie_list파일을 쓰기로 열음
-	struct actor_in_movie *temp; //정렬된 배우 저장을 위한 변수
-	struct movie *current;
-	current = data_ptr->movie_ptr;
-
-	// 데이터가 없는 경우
-	if(data_ptr->movie_ptr == NULL){
-		printf(" 입력된 데이터가 없습니다 \n\n");
-		return;
-	}
-		while(current != NULL){ // 파일에 저장
-			temp=current->actor_m;
-			fprintf(mptr,"%d:%s:%s:%s:%d:%d:", current->serial_number,  current->title,  current->genre,  current->director_m->name,  current->year,  current->movie_time);
-			while(temp != NULL){
-				fprintf(mptr,"%s",temp->name);
-				if(temp->next != NULL)
-				{
-					fprintf(mptr,",");
-				}
-				temp=temp->next;
-			}
-			fprintf(mptr,"\n");
-			current = current->next;
-		}
-	printf("\n");
-	fclose(mptr);
-}
-
-void Print_d_list(struct main_struct_ptr *data_ptr) //director_list 파일을 만들기 위한 함수
-{
-	FILE *dptr;
-	dptr=fopen("director_list", "w"); //director_list 파일을 쓰기로 열음
-	struct movie_in_director *temp; //정렬된 영화 저장을 위한 변수
-	struct director *current; // 감독정보를 저장할 변수
-	current = data_ptr->director_ptr;
-
-	// 데이터가 없는 경우
-	if(data_ptr->director_ptr == NULL){
-		printf(" 입력된 데이터가 없습니다 \n\n");
-		return;
-	}
-
-		while(current != NULL){ //파일에 저장
-			temp=current->movie_d;
-			fprintf(dptr,"%d:%s:%c:%s:", current->serial_number, current->name,  current->sex,  current->birth);
-			while(temp != NULL){
-				fprintf(dptr,"%s",temp->name);
-				if(temp->next != NULL)
-				{
-					fprintf(dptr,",");
-				}
-				temp=temp->next;
-			}
-			fprintf(dptr,"\n");
-			current = current->next;
-		}
-	printf("\n");
-	fclose(dptr);
-}
-
-void Print_a_list(struct main_struct_ptr *data_ptr) //actor_list 파일을 만들기 위한 함수
-{
-	FILE *aptr;
-	aptr=fopen("actor_list", "w");// actor_list 파일을 쓰기로 열음
-	struct movie_in_actor *temp; //정렬된 영화 저장을 위한 변수
-	struct actor *current; // 배우정보를 저장하기 위한 변수
-	current = data_ptr->actor_ptr;
-
-	// 데이터가 없는 경우
-	if(data_ptr->actor_ptr == NULL){
-		printf(" 입력된 데이터가 없습니다 \n\n");
-		return;
-	}
-		while(current != NULL){ //파일저장
-			temp=current->movie_a;
-			fprintf(aptr,"%d:%s:%c:%s:", current->serial_number, current->name,  current->sex,  current->birth);
-			while(temp != NULL){
-				fprintf(aptr,"%s",temp->name);
-				if(temp->next != NULL)
-				{
-					fprintf(aptr,",");
-				}
-				temp=temp->next;
-			}
-			fprintf(aptr,"\n");
-			current = current->next;
-		}
-	printf("\n");
-	fclose(aptr);
-}
+};
 
 void menu(char *input, struct main_struct_ptr *data_ptr ) {
 	char *get_input;
@@ -2363,292 +2243,22 @@ void menu(char *input, struct main_struct_ptr *data_ptr ) {
 			movie_save_m("actor_list",data_ptr,'a');
 		exit(0);
 	}
-	else if(!strcmp(menu,"add")){ // 명령어가 add일경우
-		token = strtok(NULL, " ");   //한번 더 쪼개서 m, d, a중에 하나인걸 확인
- 	  factor = (char *)malloc(sizeof(char) * strlen(token) + 1);
- 	  strcpy(factor, token);
-      if (!strcmp(factor, "m")){ // 인자확인
-       // add m
-			 Print_m_list(data_ptr);
-			}
-		 else if (!strcmp(factor, "d")){ // 인자확인
-			 // add d
-			 Print_d_list(data_ptr);
-		 }
-		 else if (!strcmp(factor, "a")){ // 인자확인
-			// add a
-			Print_a_list(data_ptr);
-		}
-  }
-	else if (!strcmp(menu, "delete")) { // 명령어가 delete일경우..
+
+	if (!strcmp(menu, "save")) {   //menu가 save이면
 		token = strtok(NULL, " ");   //한번 더 쪼개서 m, d, a중에 하나인걸 확인
 		factor = (char *)malloc(sizeof(char) * strlen(token) + 1);
 		strcpy(factor, token);
-		if (!strcmp(factor, "m")){ // 인자확인
-			if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 뭐가 더 있는지 확인
-				// delete m num
-				Print_m_list(data_ptr);
-			}
-		}
-		else if (!strcmp(factor, "d")){
-			if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 뭐가 더 있는지 확인
-				// delete d num
-				Print_d_list(data_ptr);
-			}
-		}
-		else if (!strcmp(factor, "a")){
-			if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 뭐가 더 있는지 확인
-			 // delete a num
-			 Print_a_list(data_ptr);
-			}
-		}
-	}
-	else if (!strcmp(menu, "update")) {   //menu가 update이면
-		token = strtok(NULL, " ");   //한번 더 쪼개서 m, d, a중에 하나인걸 확인
-		factor = (char *)malloc(sizeof(char) * strlen(token) + 1);
-		strcpy(factor, token);
-		if (!strcmp(factor, "m")){ // 인자확인
-		  if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 문자열이 더 있는지 확인
-		      option = (char *)malloc(sizeof(char) * strlen(token) + 1); //뒤에 있는게 옵션이면
-		      strcpy(option, token);
-		      if (strchr(option,'t')) //옵션확인
-		      {
-		        updatet_ = 1;
-						update_num++;
-		      }
-		      if (strchr(option,'g'))
-		      {
-		        update_g = 1;
-						update_num++;
-		      }
-		      if (strchr(option,'d'))
-		      {
-		        update_d = 1;
-						update_num++;
-		      }
-		      if (strchr(option,'y'))
-		      {
-		        update_y = 1;
-						update_num++;
-		      }
-		      if (strchr(option,'r'))
-		      {
-		        update_r = 1;
-						update_num++;
-		      }
-		      if (strchr(option,'a'))
-		      {
-		        update_a = 1;
-						update_num++;
-		      }
-					if(update_num==0)
-					{
-					 updatet_ = 1;
-					 update_g = 1;
-					 update_d = 1;
-					 update_y = 1;
-					 update_r = 1;
-					 update_a = 1;
-					 // update m num
-					 Print_m_list(data_ptr);
-					 updatet_ = 0;
-					 update_g = 0;
-					 update_d = 0;
-					 update_y = 0;
-					 update_r = 0;
-					 update_a = 0;
-				 }
-		      if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 뭐가 더 있는지 확인
-		        token = strtok(NULL, " ");
-		        // update m option num
-						Print_m_list(data_ptr);
-						updatet_ = 0;
-		        update_g = 0;
-		        update_d = 0;
-		        update_y = 0;
-		        update_r = 0;
-		        update_a = 0;
-						update_num=0;
-		      }
-		    }
-		  }
+		printf("factor : %s\n", factor);   //factor 확인
 
-		if(!strcmp(factor,"d")){
-			if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 문자열이 더 있는지 확인
-		      option = (char *)malloc(sizeof(char) * strlen(token) + 1); //뒤에 있는게 옵션이면
-		      strcpy(option, token);
-					if (strchr(option,'n')) // 각 옵션들이 무엇인지 확인
-					{
-						update_n = 1;
-						update_num++;
-					}
-					if (strchr(option,'s'))
-					{
-						update_s = 1;
-						update_num++;
-					}
-					if (strchr(option,'b'))
-					{
-						update_b = 1;
-						update_num++;
-					}
-					if (strchr(option,'m'))
-					{
-						update_m = 1;
-						update_num++;
-					}
-					if(update_num==0)
-					{
-					 update_n = 1;
-					 update_s = 1;
-					 update_b = 1;
-					 update_m = 1;
-					 // update d num
-					 Print_d_list(data_ptr);
-					 update_n = 0;
-					 update_s = 0;
-					 update_b = 0;
-					 update_m = 0;
-				 }
-		      if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 뭐가 더 있는지 확인
-		        token = strtok(NULL, " ");
-		        // update d option num
-						Print_d_list(data_ptr);
-						update_n = 0;
-						update_s = 0;
-						update_b = 0;
-						update_m = 0;
-						update_num=0;
-		      }
-		    }
+		if (!strcmp(factor, "m")){
+			if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 뭐가 더 있는지 확인, 없다면 끝냄
+				if (!strcmp(token, "-f")) {   //뒤에 있는게 -f이면 옵션없이 파일이름이 있는 것이니
+					token = strtok(NULL, " ");   //파일 이름을 받기 위해서 -f 건너뛰어서 파일이름 token에 저장
+					movie_save_m(token,data_ptr,'m');
+				}
 			}
-			if(!strcmp(factor,"a")){
-				if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 문자열이 더 있는지 확인
-			      option = (char *)malloc(sizeof(char) * strlen(token) + 1); //뒤에 있는게 옵션이면
-			      strcpy(option, token);
-						if (strchr(option,'n')) // 각 옵션들이 무엇인지 확인
-						{
-							update_n = 1;
-							update_num++;
-						}
-						if (strchr(option,'s'))
-						{
-							update_s = 1;
-							update_num++;
-						}
-						if (strchr(option,'b'))
-						{
-							update_b = 1;
-							update_num++;
-						}
-						if (strchr(option,'m'))
-						{
-							update_m = 1;
-							update_num++;
-						}
-						if(update_num==0)
-						{
-						 update_n = 1;
-						 update_s = 1;
-						 update_b = 1;
-						 update_m = 1;
-						 // update a num
-						 Print_a_list(data_ptr);
-						 update_n = 0;
-						 update_s = 0;
-						 update_b = 0;
-						 update_m = 0;
-					 }
-			      if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 뭐가 더 있는지 확인
-			        token = strtok(NULL, " ");
-			        // update a option num
-							Print_a_list(data_ptr);
-							update_n = 0;
-							update_s = 0;
-							update_b = 0;
-							update_m = 0;
-							update_num=0;
-			    }
-		    }
-		  }
-	  }
-
-	else if (!strcmp(menu, "save")) {   //menu가 save이면
-		token = strtok(NULL, " ");   //한번 더 쪼개서 m, d, a중에 하나인걸 확인
-		factor = (char *)malloc(sizeof(char) * strlen(token) + 1);
-		strcpy(factor, token);
-		if (!strcmp(factor, "m")){ // 인자확인
-		  if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 문자열이 더 있는지 확인
-		    if (!strcmp(token, "-f")) {
-		      token = strtok(NULL, " ");
-		      movie_save_m(token,data_ptr,'m');
-		    }
-		    else {   //뒤에 있는게 옵션이면
-		      option = (char *)malloc(sizeof(char) * strlen(token) + 1);
-		      strcpy(option, token);
-		      if (strchr(option,'t')) //옵션확인
-		      {
-		        savet_ = 1;
-		      }
-		      if (strchr(option,'g'))
-		      {
-		        save_g = 1;
-		      }
-		      if (strchr(option,'d'))
-		      {
-		        save_d = 1;
-		      }
-		      if (strchr(option,'y'))
-		      {
-		        save_y = 1;
-		      }
-		      if (strchr(option,'r'))
-		      {
-		        save_r = 1;
-		      }
-		      if (strchr(option,'a'))
-		      {
-		        save_a = 1;
-		      }
-
-		      if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 뭐가 더 있는지 확인
-		        token = strtok(NULL, " ");
-		        movie_save_m(token,data_ptr,'m');
-						savet_ = 0;
-		        save_g = 0;
-		        save_d = 0;
-		        save_y = 0;
-		        save_r = 0;
-		        save_a = 0;
-		      }
-		      else
-		      {
-		        movie_save_m("movie_list",data_ptr,'m');
-		        savet_ = 0;
-		        save_g = 0;
-		        save_d = 0;
-		        save_y = 0;
-		        save_r = 0;
-		        save_a = 0;
-		      }
-		    }
-		  }
-		  else // -f 없이 인자 m만 받음
-		  {
-		    savet_ = 1;
-		    save_g = 1;
-		    save_d = 1;
-		    save_y = 1;
-		    save_r = 1;
-		    save_a = 1;
-		    movie_save_m("movie_list",data_ptr,'m');
-		    savet_ = 0;
-		    save_g = 0;
-		    save_d = 0;
-		    save_y = 0;
-		    save_r = 0;
-		    save_a = 0;
-		  }
+			else
+				movie_save_m("movie_list",data_ptr,'m');//-f 가 없을 경우 기본파일에 저장.
 		}
 
 		if(!strcmp(factor,"d")){
@@ -2767,10 +2377,11 @@ void menu(char *input, struct main_struct_ptr *data_ptr ) {
 		}
 	}
 
-	else if (!strcmp(menu, "sort")) {   //menu가 sort이면
+	if (!strcmp(menu, "sort")) {   //menu가 sort이면
 		token = strtok(NULL, " ");   //한번 더 쪼개서 m, d, a중에 하나인걸 확인
 		factor = (char *)malloc(sizeof(char) * strlen(token) + 1);
 		strcpy(factor, token);
+
 		if (!strcmp(factor, "m")){ // 인자확인
 			if ((token = strtok(NULL, " ")) != NULL) {   //뒤에 문자열이 더 있는지 확인
 				if (!strcmp(token, "-f")) {   //옵션없이 -f이면 영화이름대로 정렬
@@ -2962,15 +2573,8 @@ int mov(struct main_struct_ptr* data_ptr, char *s2){
 	}
 	int i  = 0;
 	while(1){
-		int ser, tit, gen, dir, yea, tim, act, i, check, getout;
+		int ser, tit, gen, dir, yea, tim, act;
 		char *Ser, *Yea, *Tim;
-		char ** actstring;
-		i = 0;
-		check = 0;
-		getout = 0;
-		actstring = (char**)malloc(sizeof(char*) * 50);
-		for(int i = 0; i < 50 ; i++)
-			*(actstring + i) = (char*)malloc(sizeof(char)*20);
 		Ser = (char*)malloc(sizeof(char*)*50);
 		Yea = (char*)malloc(sizeof(char*)*50);
 		Tim = (char*)malloc(sizeof(char*)*50);
@@ -2984,40 +2588,14 @@ int mov(struct main_struct_ptr* data_ptr, char *s2){
 		yea = strcmp(Yea, s2);
 		tim = strcmp(Tim, s2);
 		act = strcmp(data_ptr->movie_ptr->actor_m->name, s2);
-		if(data_ptr->movie_ptr->actor_m->next == NULL){
-			*actstring = data_ptr->movie_ptr->actor_m->name;
-		}
-
-		else  {
-		while(1){
-			if(act == 0)
-				check = 1;
-			printf("%d, %s\n",i, data_ptr->movie_ptr->actor_m->name);
-			*(actstring + i) = data_ptr->movie_ptr->actor_m->name;
-			if(getout == 1)
-				break;
-			data_ptr->movie_ptr->actor_m = data_ptr->movie_ptr->actor_m->next;
-			act = strcmp(data_ptr->movie_ptr->actor_m->name, s2);
-			i++;
-			if(data_ptr->movie_ptr->actor_m->next == NULL)
-				getout = 1;
-		}
-		if(check == 1)
-			act = 0;
-	}
 		printf("%d %d %d %d %d %d %d\n", ser, tit, gen, dir, yea, tim, act);
-	// 	printf("%d:", data_ptr->movie_ptr->serial_number);
-	// 	printf("%s:", data_ptr->movie_ptr->title);
-	// 	printf("%s:", data_ptr->movie_ptr->genre);
-	// 	printf("%s:", data_ptr->movie_ptr->director_m->name);
-	// 	printf("%d:", data_ptr->movie_ptr->year);
-	// 	printf("%d:", data_ptr->movie_ptr->movie_time);
-	// 	printf("%s", *(actstring));
-	// 	if(i){
-	// 	for(int k = 1 ; k < i+1; k++)
-	// 		printf(",%s", *(actstring + k ));
-	// 	printf("\n");
-	// }
+		printf("%d:", data_ptr->movie_ptr->serial_number);
+		printf("%s:", data_ptr->movie_ptr->title);
+		printf("%s:", data_ptr->movie_ptr->genre);
+		printf("%s:", data_ptr->movie_ptr->director_m->name);
+		printf("%d:", data_ptr->movie_ptr->year);
+		printf("%d:", data_ptr->movie_ptr->movie_time);
+		printf("%s\n", data_ptr->movie_ptr->actor_m->name);
 		if(ser * tit * gen * dir * yea * tim * act == 0){
 			printf("%d:", data_ptr->movie_ptr->serial_number);
 			printf("%s:", data_ptr->movie_ptr->title);
@@ -3025,15 +2603,12 @@ int mov(struct main_struct_ptr* data_ptr, char *s2){
 			printf("%s:", data_ptr->movie_ptr->director_m->name);
 			printf("%d:", data_ptr->movie_ptr->year);
 			printf("%d:", data_ptr->movie_ptr->movie_time);
-			printf("%s", *(actstring));
-			if(i)
-				for(int k = 1 ; k < i+1; k++)
-					printf(",%s", *(actstring + k ));
-			printf("\n");
-
+			printf("%s\n", data_ptr->movie_ptr->actor_m->name);
 		}
+		printf("%d\n", i++);
 		if(data_ptr->movie_ptr->next  == NULL)
 			break;
+		printf("%d\n", i);
 		data_ptr->movie_ptr = data_ptr->movie_ptr->next;
 		free(Ser);
 		free(Yea);
@@ -3048,16 +2623,9 @@ int dir(struct main_struct_ptr* data_ptr,char *s2){
 		return 0;
 	}
 	while(1){
-		int ser, nam, sex, bir, mov, i, check, getout;
+		printf("wow\n");
+		int ser, nam, sex, bir, mov;
 		char* Ser, *Sex;
-		char** movstring;
-		i = 0;
-		check = 0;
-		getout = 0;
-		movstring = (char**)malloc(sizeof(char*) * 50);
-		for(int i = 0; i < 50 ; i++)
-			*(movstring + i) = (char*)malloc(sizeof(char)*20);
-
 		Ser = (char*)malloc(sizeof(char*)*50);
 		Sex = (char*)malloc(sizeof(char*)*50);
 		sprintf(Ser, "%d", data_ptr->director_ptr->serial_number);
@@ -3067,45 +2635,18 @@ int dir(struct main_struct_ptr* data_ptr,char *s2){
 		sex = strcmp(Sex, s2);
 		bir = strcmp(data_ptr->director_ptr->birth, s2);
 		mov = strcmp(data_ptr->director_ptr->movie_d->name, s2);
-		if(data_ptr->director_ptr->movie_d->next == NULL)
-			*movstring = data_ptr->director_ptr->movie_d->name;
-		else{
-		while(1){
-			if(mov == 0)
-				check = 1;
-			// printf("%d, %s\n",i, data_ptr->director_ptr->movie_d->name);
-			*(movstring + i) = data_ptr->director_ptr->movie_d->name;
-			if(getout == 1)
-				break;
-			data_ptr->director_ptr->movie_d = data_ptr->director_ptr->movie_d->next;
-			mov = strcmp(data_ptr->director_ptr->movie_d->name, s2);
-			i++;
-			if(data_ptr->director_ptr->movie_d->next == NULL)
-				getout = 1;
-		}
-		if(check == 1)
-			mov = 0;
-		}
-			// printf("i : %d\n", i);
-			// printf("%d %d %d %d %d\n", ser, nam, sex, bir, mov);
-			// printf("%d:", data_ptr->director_ptr->serial_number);
-			// printf("%s:", data_ptr->director_ptr->name);
-			// printf("%c:", data_ptr->director_ptr->sex);
-			// printf("%s:", data_ptr->director_ptr->birth);
-			// printf("%s", *(movstring));
-			// for(int k = 1 ; k < i+1; k++)
-			// 	printf(",%s", *(movstring + k ));
-			// printf("\n");
+		printf("%d %d %d %d %d\n", ser, nam, sex, bir, mov);
+		printf("%d:", data_ptr->director_ptr->serial_number);
+		printf("%s:", data_ptr->director_ptr->name);
+		printf("%c:", data_ptr->director_ptr->sex);
+		printf("%s:", data_ptr->director_ptr->birth);
+		printf("%s\n", data_ptr->director_ptr->movie_d->name);
 		if(ser * nam * sex * bir * mov == 0){
 			printf("%d:", data_ptr->director_ptr->serial_number);
 			printf("%s:", data_ptr->director_ptr->name);
 			printf("%c:", data_ptr->director_ptr->sex);
 			printf("%s:", data_ptr->director_ptr->birth);
-			printf("%s", data_ptr->director_ptr->movie_d->name);
-			if(i)
-				for(int k = 1 ; k < i+1; k++)
-					printf(",%s", *(movstring + k ));
-			printf("\n");
+			printf("%s\n", data_ptr->director_ptr->movie_d->name);
 
 		}
 		if(data_ptr->director_ptr->next == NULL)
@@ -3123,16 +2664,10 @@ int act(struct main_struct_ptr* data_ptr, char *s2){
 		return 0;
 	}
 	while(1){
-		int ser, nam, sex, bir, mov, i, check, getout;
+		struct main_struct_ptr *tmp_data_ptr;
+		tmp_data_ptr = data_ptr;
+		int ser, nam, sex, bir, mov;
 		char* Ser, *Sex;
-		char** movstring;
-		i = 0;
-		check = 0;
-		getout = 0;
-		movstring = (char**)malloc(sizeof(char*) * 50);
-		for(int i = 0; i < 50 ; i ++)
-			*(movstring + i) = (char *)malloc(sizeof(char) * 20);
-
 		Ser = (char*)malloc(sizeof(char*)*50);
 		Sex = (char*)malloc(sizeof(char*)*50);
 		sprintf(Ser, "%d", data_ptr->actor_ptr->serial_number);
@@ -3142,54 +2677,38 @@ int act(struct main_struct_ptr* data_ptr, char *s2){
 		sex = strcmp(Sex, s2);
 		bir = strcmp(data_ptr->actor_ptr->birth, s2);
 		mov = strcmp(data_ptr->actor_ptr->movie_a->name, s2);
-		if(data_ptr->actor_ptr->movie_a->next == NULL)
-			*movstring = data_ptr->actor_ptr->movie_a->name;
-		else{
-		while(1){
-			if(mov == 0)
-				check = 1;
-			// printf("%d, %s\n",i, data_ptr->actor_ptr->movie_a->name);
-			*(movstring + i) = data_ptr->actor_ptr->movie_a->name;
-			if(getout == 1)
-				break;
+		while(data_ptr->actor_ptr->movie_a->next != NULL){
+			printf("%s %s %d\n", data_ptr->actor_ptr->movie_a->name, s2, mov);
+			printf("%d %d\n", strlen( data_ptr->actor_ptr->movie_a->name), strlen(s2));
+			printf("%d\n", data_ptr->actor_ptr->movie_a->name[4]);
 			data_ptr->actor_ptr->movie_a = data_ptr->actor_ptr->movie_a->next;
 			mov = strcmp(data_ptr->actor_ptr->movie_a->name, s2);
-			i++;
-			if(data_ptr->actor_ptr->movie_a->next == NULL)
-				getout = 1;
 		}
-		if(check == 1)
-			mov = 0;
-		}
-		// printf("i : %d\n", i);
-		// printf("%d %d %d %d %d\n", ser, nam, sex, bir, mov);
-		// printf("%d:", data_ptr->actor_ptr->serial_number);
-		// printf("%s:", data_ptr->actor_ptr->name);
-		// printf("%c:", data_ptr->actor_ptr->sex);
-		// printf("%s:", data_ptr->actor_ptr->birth);
-		// printf("%s", *(movstring));
-		// for(int k = 1 ; k < i+1; k++)
-		// 	printf(",%s", *(movstring + k ));
-		// printf("\n");
-		printf("%d\n", i);
+		printf("%d %d %d %d %d\n", ser, nam, sex, bir, mov);
+		printf("%d:", data_ptr->actor_ptr->serial_number);
+		printf("%s:", data_ptr->actor_ptr->name);
+		printf("%c:", data_ptr->actor_ptr->sex);
+		printf("%s:", data_ptr->actor_ptr->birth);
+		printf("%s\n", tmp_data_ptr->actor_ptr->movie_a->name);
+		// while(tmp_data_ptr->actor_ptr->movie_a->next != NULL){
+		// 	tmp_data_ptr->actor_ptr->movie_a = tmp_data_ptr->actor_ptr->movie_a->next;
+		// 	printf("%s\n", tmp_data_ptr->actor_ptr->movie_a->name);
+		// }
 		if(ser * nam * sex * bir * mov == 0){
 			printf("%d:", data_ptr->actor_ptr->serial_number);
 			printf("%s:", data_ptr->actor_ptr->name);
 			printf("%c:", data_ptr->actor_ptr->sex);
 			printf("%s:", data_ptr->actor_ptr->birth);
-			printf("%s", *(movstring));
-			if(i)
-				for(int k = 1 ; k < i+1; k++)
-					printf(",%s", *(movstring + k ));
-			printf("\n");
+			printf("%s\n", data_ptr->actor_ptr->movie_a->name);
 		}
 		if(data_ptr->actor_ptr->next == NULL)
 			break;
+
 		data_ptr->actor_ptr = data_ptr->actor_ptr->next;
 
 
 	}
-		return 0;
+	return 0;
 }
 
 bool pattern_match(const char *str, const char *pattern) {
@@ -3252,16 +2771,8 @@ bool pattern_match(const char *str, const char *pattern) {
 
 void QorM_m(struct main_struct_ptr *data_ptr, char*s2){
 	while(1){
-		int ser, tit, gen, dir, yea, tim, act, i, check, getout;
+		int ser, tit, gen, dir, yea, tim, act;
 		char *Ser, *Yea, *Tim;
-		char **actstring;
-		i = 0;
-		check = 0;
-		getout = 0;
-		actstring = (char**)malloc(sizeof(char*) * 50);
-		for(int i = 0; i < 50 ; i++)
-			*(actstring + i) = (char*)malloc(sizeof(char)*20);
-
 		Ser = (char*)malloc(sizeof(char*)*50);
 		Yea = (char*)malloc(sizeof(char*)*50);
 		Tim = (char*)malloc(sizeof(char*)*50);
@@ -3275,33 +2786,14 @@ void QorM_m(struct main_struct_ptr *data_ptr, char*s2){
 		yea = (pattern_match(Yea, s2)) - 1;
 		tim = (pattern_match(Tim, s2)) - 1;
 		act = (pattern_match(data_ptr->movie_ptr->actor_m->name, s2)) - 1;
-		if(data_ptr->movie_ptr->actor_m->next == NULL)
-			*actstring = data_ptr->movie_ptr->actor_m->name;
-		else  {
-		while(1){
-			if(act == 0)
-				check = 1;
-			// printf("%d, %s\n",i, data_ptr->director_ptr->movie_d->name);
-			*(actstring + i) = data_ptr->movie_ptr->actor_m->name;
-			if(getout == 1)
-				break;
-			data_ptr->movie_ptr->actor_m  = data_ptr->movie_ptr->actor_m->next;
-			act = (pattern_match(data_ptr->movie_ptr->actor_m->name, s2)) - 1;
-			i++;
-			if(data_ptr->movie_ptr->actor_m->next == NULL)
-				getout = 1;
-		}
-		if(check == 1)
-			act = 0;
-	}
 		printf("%d %d %d %d %d %d %d\n", ser, tit, gen, dir, yea, tim, act);
-		// printf("%d:", data_ptr->movie_ptr->serial_number);
-		// printf("%s:", data_ptr->movie_ptr->title);
-		// printf("%s:", data_ptr->movie_ptr->genre);
-		// printf("%s:", data_ptr->movie_ptr->director_m->name);
-		// printf("%d:", data_ptr->movie_ptr->year);
-		// printf("%d:", data_ptr->movie_ptr->movie_time);
-		// printf("%s\n", data_ptr->movie_ptr->actor_m->name);
+		printf("%d:", data_ptr->movie_ptr->serial_number);
+		printf("%s:", data_ptr->movie_ptr->title);
+		printf("%s:", data_ptr->movie_ptr->genre);
+		printf("%s:", data_ptr->movie_ptr->director_m->name);
+		printf("%d:", data_ptr->movie_ptr->year);
+		printf("%d:", data_ptr->movie_ptr->movie_time);
+		printf("%s\n", data_ptr->movie_ptr->actor_m->name);
 		if(ser * tit * gen * dir * yea * tim * act == 0){
 			printf("%d:", data_ptr->movie_ptr->serial_number);
 			printf("%s:", data_ptr->movie_ptr->title);
@@ -3309,11 +2801,7 @@ void QorM_m(struct main_struct_ptr *data_ptr, char*s2){
 			printf("%s:", data_ptr->movie_ptr->director_m->name);
 			printf("%d:", data_ptr->movie_ptr->year);
 			printf("%d:", data_ptr->movie_ptr->movie_time);
-			printf("%s", *actstring);
-			if(i)
-				for(int k = 1; k < i+1; k++)
-					printf(",%s", *(actstring + k));
-			printf("\n");
+			printf("%s\n", data_ptr->movie_ptr->actor_m->name);
 		}
 		if(data_ptr->movie_ptr->next == NULL)
 			break;
@@ -3326,16 +2814,8 @@ void QorM_m(struct main_struct_ptr *data_ptr, char*s2){
 
 void QorM_d(struct main_struct_ptr *data_ptr, char*s2){
 	while(1){
-		int ser, nam, sex, bir, mov, i, check, getout;
+		int ser, nam, sex, bir, mov;
 		char* Ser, *Sex;
-		char** movstring;
-		i = 0;
-		check = 0;
-		getout = 0;
-		movstring = (char**)malloc(sizeof(char*) * 50);
-		for(int i = 0; i < 50 ; i++)
-			*(movstring + i) = (char*)malloc(sizeof(char)*20);
-
 		Ser = (char*)malloc(sizeof(char*)*50);
 		Sex = (char*)malloc(sizeof(char*)*50);
 		sprintf(Ser, "%d", data_ptr->director_ptr->serial_number);
@@ -3345,35 +2825,19 @@ void QorM_d(struct main_struct_ptr *data_ptr, char*s2){
 		sex = (pattern_match(Sex, s2)) - 1;
 		bir = (pattern_match(data_ptr->director_ptr->birth, s2)) - 1;
 		mov = (pattern_match(data_ptr->director_ptr->movie_d->name, s2)) - 1;
-		if(data_ptr->director_ptr->movie_d->next == NULL)
-			*movstring = data_ptr->director_ptr->movie_d->name;
-		else{
-		while(1){
-			if(mov == 0)
-				check = 1;
-			// printf("%d, %s\n",i, data_ptr->director_ptr->movie_d->name);
-			*(movstring + i) = data_ptr->director_ptr->movie_d->name;
-			if(getout == 1)
-				break;
-			data_ptr->director_ptr->movie_d = data_ptr->director_ptr->movie_d->next;
-			mov = (pattern_match(data_ptr->director_ptr->movie_d->name, s2)) - 1;
-			i++;
-			if(data_ptr->director_ptr->movie_d->next == NULL)
-				getout = 1;
-		}
-		if(check == 1)
-			mov = 0;
-		}
+		printf("%d %d %d %d %d\n", ser, nam, sex, bir, mov);
+		printf("%d:", data_ptr->director_ptr->serial_number);
+		printf("%s:", data_ptr->director_ptr->name);
+		printf("%c:", data_ptr->director_ptr->sex);
+		printf("%s:", data_ptr->director_ptr->birth);
+		printf("%s\n", data_ptr->director_ptr->movie_d->name);
+
 		if(ser * nam * sex * bir * mov == 0){
 			printf("%d:", data_ptr->director_ptr->serial_number);
 			printf("%s:", data_ptr->director_ptr->name);
 			printf("%c:", data_ptr->director_ptr->sex);
 			printf("%s:", data_ptr->director_ptr->birth);
-			printf("%s", data_ptr->director_ptr->movie_d->name);
-			if(i)
-				for(int k = 1 ; k < i+1; k++)
-					printf(",%s", *(movstring + k ));
-			printf("\n");
+			printf("%s\n", data_ptr->director_ptr->movie_d->name);
 		}
 		if(data_ptr->director_ptr->next == NULL)
 			break;
@@ -3385,15 +2849,8 @@ void QorM_d(struct main_struct_ptr *data_ptr, char*s2){
 
 void QorM_a(struct main_struct_ptr *data_ptr, char*s2){
 	while(1){
-		int ser, nam, sex, bir, mov, i, check, getout;
+		int ser, nam, sex, bir, mov;
 		char* Ser, *Sex;
-		char** movstring;
-		i = 0;
-		check = 0;
-		getout = 0;
-		movstring = (char**)malloc(sizeof(char*) * 50);
-		for(int i = 0; i < 50 ; i ++)
-			*(movstring + i) = (char *)malloc(sizeof(char) * 20);
 		Ser = (char*)malloc(sizeof(char*)*50);
 		Sex = (char*)malloc(sizeof(char*)*50);
 		sprintf(Ser, "%d", data_ptr->actor_ptr->serial_number);
@@ -3403,49 +2860,24 @@ void QorM_a(struct main_struct_ptr *data_ptr, char*s2){
 		sex = (pattern_match(Sex, s2)) - 1;
 		bir = (pattern_match(data_ptr->actor_ptr->birth, s2)) - 1;
 		mov = (pattern_match(data_ptr->actor_ptr->movie_a->name, s2)) - 1;
-		if(data_ptr->actor_ptr->movie_a->next == NULL)
-			*movstring = data_ptr->actor_ptr->movie_a->name;
-		else{
-		while(1){
-			if(mov == 0)
-				check = 1;
-			// printf("%d, %s\n",i, data_ptr->actor_ptr->movie_a->name);
-			*(movstring + i) = data_ptr->actor_ptr->movie_a->name;
-			if(getout == 1)
-				break;
-			data_ptr->actor_ptr->movie_a = data_ptr->actor_ptr->movie_a->next;
-			mov = (pattern_match(*(movstring + i), s2)) -1;
-			i++;
-			if(data_ptr->actor_ptr->movie_a->next == NULL)
-				getout = 1;
-		}
-		if(check == 1)
-			mov = 0;
-		}
-		// printf("%d %d %d %d %d\n", ser, nam, sex, bir, mov);
-		// printf("%d:", data_ptr->actor_ptr->serial_number);
-		// printf("%s:", data_ptr->actor_ptr->name);
-		// printf("%c:", data_ptr->actor_ptr->sex);
-		// printf("%s:", data_ptr->actor_ptr->birth);
-		// printf("%s\n", data_ptr->actor_ptr->movie_a->name);
+		printf("%d %d %d %d %d\n", ser, nam, sex, bir, mov);
+		printf("%d:", data_ptr->actor_ptr->serial_number);
+		printf("%s:", data_ptr->actor_ptr->name);
+		printf("%c:", data_ptr->actor_ptr->sex);
+		printf("%s:", data_ptr->actor_ptr->birth);
+		printf("%s\n", data_ptr->actor_ptr->movie_a->name);
 
 		if(ser * nam * sex * bir * mov == 0){
 			printf("%d:", data_ptr->actor_ptr->serial_number);
 			printf("%s:", data_ptr->actor_ptr->name);
 			printf("%c:", data_ptr->actor_ptr->sex);
 			printf("%s:", data_ptr->actor_ptr->birth);
-			printf("%s", *(movstring));
-			if(i)
-				for(int k = 1 ; k < i+1; k++)
-					printf(",%s", *(movstring + k ));
-			printf("\n");
+			printf("%s\n", data_ptr->actor_ptr->movie_a->name);
 		}
 		if(data_ptr->actor_ptr->next == NULL)
 			break;
 
 		data_ptr->actor_ptr = data_ptr->actor_ptr->next;
-
-
 	}
 }
 
@@ -3493,19 +2925,18 @@ void ordersearch(struct main_struct_ptr*data_ptr) {
 
 	}
 	else{           // 옵션이 없다면
-		mov(data_ptr, s2);
+		//mov(data_ptr, s2);
 		dir(data_ptr, s2);
 		act(data_ptr, s2);
 	}
 }
 
-
-
 void add_movie_mode (FILE *optr, struct movie *movie_ptr) {
 
 	int cnt = 0;
 	int update_sn;
-	struct movie *current, *pre_current;
+	struct movie *current, *pre_current, *record_ptr;
+  record_ptr = movie_ptr;
 	pre_current = movie_ptr;
 	while (pre_current -> next != NULL){
 		update_sn = pre_current -> serial_number;
@@ -3519,6 +2950,50 @@ void add_movie_mode (FILE *optr, struct movie *movie_ptr) {
 
 	printf("title >");
 	scan_title_m(stdin, current);
+  while (1){
+    printf("1\n");
+    if (record_ptr->next == NULL)
+      break;
+    else {
+      char *tmp_str;
+      tmp_str = (record_ptr ->title);
+      if(strcmp((current->title),tmp_str) == 0){
+        printf("You have same record\n");
+        printf("%s:%s:%s....\n", record_ptr->title, record_ptr->genre, record_ptr->director_m->name);
+        printf("Do you want to record with new name? (y/n) : ");
+        char answer;
+        scanf("%c", &answer);
+        getchar();
+        if (answer == 'n')
+          return;
+        else if (answer == 'y'){
+          printf("title>");
+          scan_title_m(stdin, current);
+          break;
+        }
+      }
+      else{
+        record_ptr = record_ptr -> next;
+      }
+    }
+  }
+  char *tmp_str;
+  tmp_str = (record_ptr ->title);
+  if(strcmp((current->title),tmp_str) == 0){
+    printf("You have same record\n");
+    printf("%s:%s:%s....\n", record_ptr->title, record_ptr->genre, record_ptr->director_m->name);
+    printf("Do you want to record with new name? (y/n) : ");
+    char answer;
+    scanf("%c", &answer);
+    getchar();
+    if (answer == 'n')
+      return;
+    else if (answer == 'y'){
+      printf("title>");
+      scan_title_m(stdin, current);
+    }
+  }
+
 
 	printf("genre >");
 	scan_genre_m(stdin, current);
@@ -3552,7 +3027,8 @@ void add_movie_mode (FILE *optr, struct movie *movie_ptr) {
 void add_director_mode (FILE *optr, struct director *director_ptr) {
 	int cnt = 0;
 	int update_sn;
-	struct director *current, *pre_current;
+	struct director *current, *pre_current, *record_ptr;
+  record_ptr = director_ptr;
 	pre_current = director_ptr;
 	while (pre_current -> next != NULL){
 		update_sn = pre_current -> serial_number;
@@ -3562,10 +3038,55 @@ void add_director_mode (FILE *optr, struct director *director_ptr) {
 	current = pre_current -> next;
 	current = malloc (sizeof (struct director));
 	pre_current -> next = current;
+
 	current -> next = NULL;
 
 	printf("name >");
 	scan_name_d(stdin, current);
+  while (1){
+    printf("1\n");
+    if (record_ptr->next == NULL)
+      break;
+    else {
+      char *tmp_str;
+      tmp_str = (record_ptr ->name);
+      if(strcmp((current->name),tmp_str) == 0){
+        printf("You have same record\n");
+        printf("%s:%c:%d....\n", record_ptr->name, record_ptr->sex, record_ptr->birth);
+        printf("Do you want to record with new name? (y/n) : ");
+        char answer;
+        scanf("%c", &answer);
+        getchar();
+        if (answer == 'n')
+          return;
+        else if (answer == 'y'){
+          printf("title>");
+          scan_name_d(stdin, current);
+          break;
+        }
+      }
+      else{
+        record_ptr = record_ptr -> next;
+      }
+    }
+  }
+  char *tmp_str;
+  tmp_str = (record_ptr ->name);
+  if(strcmp((current->name),tmp_str) == 0){
+    printf("You have same record\n");
+    printf("%s:%c:%d....\n", record_ptr->name, record_ptr->sex, record_ptr->birth);
+    printf("Do you want to record with new name? (y/n) : ");
+    char answer;
+    scanf("%c", &answer);
+    getchar();
+    if (answer == 'n')
+      return;
+    else if (answer == 'y'){
+      printf("title>");
+      scan_name_d(stdin, current);
+    }
+  }
+
 
 	printf("sex >");
 	scan_sex_d(stdin, current);
@@ -3578,7 +3099,7 @@ void add_director_mode (FILE *optr, struct director *director_ptr) {
 
 	struct movie_in_director *tmp_movie_d;
 	tmp_movie_d = (current->movie_d);
-	fprintf(optr,"add:%s:%c:%s:",current->name,current->sex,current->birth);
+	fprintf(optr,"add:%d:%s:%c:%s:",update_sn,current->name,current->sex,current->birth);
 	while(tmp_movie_d != NULL){
 		fprintf(optr,"%s",tmp_movie_d ->name);
 		if (tmp_movie_d -> next != NULL){
@@ -3592,7 +3113,8 @@ void add_director_mode (FILE *optr, struct director *director_ptr) {
 void add_actor_mode (FILE *optr, struct actor *actor_ptr) {
 	int cnt = 0;
 	int update_sn;
-	struct actor *current, *pre_current;
+	struct actor *current, *pre_current, *record_ptr;
+  record_ptr = actor_ptr;
 	pre_current = actor_ptr;
 	while (pre_current -> next != NULL){
 		update_sn = pre_current -> serial_number;
@@ -3606,6 +3128,50 @@ void add_actor_mode (FILE *optr, struct actor *actor_ptr) {
 
 	printf("name >");
 	scan_name_a(stdin, current);
+  while (1){
+    printf("1\n");
+    if (record_ptr->next == NULL)
+      break;
+    else
+     {
+      char *tmp_str;
+      tmp_str = (record_ptr ->name);
+      if(strcmp((current->name),tmp_str) == 0){
+        printf("You have same record\n");
+        printf("%s:%c:%d....\n", record_ptr->name, record_ptr->sex, record_ptr->birth);
+        printf("Do you want to record with new name? (y/n) : ");
+        char answer;
+        scanf("%c", &answer);
+        getchar();
+        if (answer == 'n')
+          return;
+        else if (answer == 'y'){
+          printf("title>");
+          scan_name_a(stdin, current);
+          break;
+        }
+      }
+      else{
+        record_ptr = record_ptr -> next;
+      }
+    }
+  }
+  char *tmp_str;
+  tmp_str = (record_ptr ->name);
+  if(strcmp((current->name),tmp_str) == 0){
+    printf("You have same record\n");
+    printf("%s:%c:%d....\n", record_ptr->name, record_ptr->sex, record_ptr->birth);
+    printf("Do you want to record with new name? (y/n) : ");
+    char answer;
+    scanf("%c", &answer);
+    getchar();
+    if (answer == 'n')
+      return;
+    else if (answer == 'y'){
+      printf("title>");
+      scan_name_a(stdin, current);
+    }
+  }
 
 	printf("sex >");
 	scan_sex_a(stdin, current);
@@ -3630,52 +3196,181 @@ void add_actor_mode (FILE *optr, struct actor *actor_ptr) {
 }
 
 
+void update_movie_mode (FILE * optr, struct movie *movie_ptr){
+
+}
+
+
+int delete_movie_mode (FILE * optr, struct movie *movie_ptr) {
+	int serial_number;
+	char *trash = malloc (100);
+	printf("insert rm serial number :" );
+	serial_number = scan_serial_number_mud(stdin, movie_ptr);
+	struct movie *delete_movie_ptr;
+	delete_movie_ptr = move2place_m(movie_ptr,serial_number);
+	if (delete_movie_ptr==NULL)
+		return 0;
+	free_movie(delete_movie_ptr);
+	for (int i=0; i<6 ; i++){
+	scan_word(optr, trash);
+ }
+ struct movie *pre_delm_ptr;
+ if (serial_number == 1){
+	 printf("you can't delete first data (serial number 1)\n");
+	 return 0;
+ }
+ else {
+	 pre_delm_ptr = move2preplace_m(movie_ptr,(serial_number));
+	 struct movie *aft_delm_ptr;
+	 aft_delm_ptr = delete_movie_ptr -> next;
+	 (pre_delm_ptr -> next) = aft_delm_ptr;
+ }
+ fprintf(optr, "delete:%d:=:=:=:=:=:=\n",serial_number);
+ free(delete_movie_ptr);
+ printf("********************\n  ");
+ return serial_number;
+}
+
+int delete_director_mode (FILE * optr, struct director *director_ptr) {
+	int serial_number;
+	char *trash = malloc (100);
+	printf("insert rm serial number :" );
+	serial_number = scan_serial_number_dud(stdin, director_ptr);
+	struct director *delete_director_ptr;
+	delete_director_ptr = move2place_d(director_ptr,serial_number);
+	if (delete_director_ptr==NULL)
+		return 0;
+	free_director(delete_director_ptr);
+	for (int i=0; i<4 ; i++){
+	scan_word(optr, trash);
+ }
+ struct director *pre_delm_ptr;
+ if (serial_number == 1){
+	 printf("you can't delete first data (serial number 1)\n");
+	 return 0;
+ }
+ else {
+	 pre_delm_ptr = move2preplace_d(director_ptr,(serial_number));
+	 struct director *aft_delm_ptr;
+	 aft_delm_ptr = delete_director_ptr -> next;
+	 (pre_delm_ptr -> next) = aft_delm_ptr;
+ }
+ fprintf(optr, "delete:%d:=:=:=:=\n",serial_number);
+ free(delete_director_ptr);
+ printf("********************\n  ");
+ return serial_number;
+}
+
+int delete_actor_mode (FILE * optr, struct actor *actor_ptr) {
+	int serial_number;
+	char *trash = malloc (100);
+	printf("insert rm serial number :" );
+	serial_number = scan_serial_number_aud(stdin, actor_ptr);
+	struct actor *delete_actor_ptr;
+	delete_actor_ptr = move2place_a(actor_ptr,serial_number);
+	if (delete_actor_ptr==NULL)
+		return 0;
+	free_actor(delete_actor_ptr);
+	for (int i=0; i<4 ; i++){
+	scan_word(optr, trash);
+ }
+ struct actor *pre_delm_ptr;
+ if (serial_number == 1){
+	 printf("you can't delete first data (serial number 1)\n");
+	 return 0;
+ }
+ else {
+	 pre_delm_ptr = move2preplace_a(actor_ptr,(serial_number));
+	 struct actor *aft_delm_ptr;
+	 aft_delm_ptr = delete_actor_ptr -> next;
+	 (pre_delm_ptr -> next) = aft_delm_ptr;
+ }
+ fprintf(optr, "delete:%d:=:=:=:=\n",serial_number);
+ free(delete_actor_ptr);
+ printf("********************\n  ");
+ return serial_number;
+}
+
+int mov1(struct movie *movie_ptr, char *s2){
+  struct movie *tmp_movie_ptr;
+  tmp_movie_ptr = movie_ptr;
+	int i  = 0;
+  while(1){
+		int ser, tit, gen, dir, yea, tim, act;
+		char *Ser, *Yea, *Tim;
+		Ser = (char*)malloc(sizeof(char*)*50);
+		Yea = (char*)malloc(sizeof(char*)*50);
+		Tim = (char*)malloc(sizeof(char*)*50);
+		sprintf(Ser, "%d", tmp_movie_ptr->serial_number);
+		sprintf(Yea, "%d", tmp_movie_ptr->year);
+		sprintf(Tim, "%d", tmp_movie_ptr->movie_time);
+		ser = strcmp(Ser, s2);
+		tit = strcmp(tmp_movie_ptr->title, s2);
+		gen = strcmp(tmp_movie_ptr->genre, s2);
+		dir = strcmp(tmp_movie_ptr->director_m->name, s2);
+		yea = strcmp(Yea, s2);
+		tim = strcmp(Tim, s2);
+		act = strcmp(tmp_movie_ptr->actor_m->name, s2);
+		printf("%d %d %d %d %d %d %d\n", ser, tit, gen, dir, yea, tim, act);
+		printf("%d:", tmp_movie_ptr->serial_number);
+		printf("%s:", tmp_movie_ptr->title);
+		printf("%s:", tmp_movie_ptr->genre);
+		printf("%s:", tmp_movie_ptr->director_m->name);
+		printf("%d:", tmp_movie_ptr->year);
+		printf("%d:", tmp_movie_ptr->movie_time);
+		printf("%s\n", tmp_movie_ptr->actor_m->name);
+		if(ser * tit * gen * dir * yea * tim * act == 0){
+			printf("%d:", tmp_movie_ptr->serial_number);
+			printf("%s:", tmp_movie_ptr->title);
+			printf("%s:", tmp_movie_ptr->genre);
+			printf("%s:", tmp_movie_ptr->director_m->name);
+			printf("%d:", tmp_movie_ptr->year);
+			printf("%d:", tmp_movie_ptr->movie_time);
+			printf("%s\n", tmp_movie_ptr->actor_m->name);
+		}
+		printf("%d\n", i++);
+		if(tmp_movie_ptr->next  == NULL)
+			break;
+		printf("%d\n", i);
+		tmp_movie_ptr = tmp_movie_ptr->next;
+		free(Ser);
+		free(Yea);
+		free(Tim);
+	}
+	return 0;
+}
+
+
 int main(){
 	struct main_struct_ptr *data_ptr; // 저장될 모든 데이터들
 	data_ptr = malloc(sizeof(struct main_struct_ptr));
+	char test[] = "jong";
 	get_data(data_ptr); // 파일 읽고, 정보저장
-	ctrlc.sa_handler = sigint_handler; // 시그널 핸들러 지정
-	sigemptyset(&ctrlc.sa_mask);      // 시그널 처리 중 블록될 시그널은 없음
-	sigaction(SIGINT, &ctrlc, NULL);
+	Print_m(data_ptr);
+	printf("\n\n\n\n\n\n");
+	printf("+++++++++++++++++++++++++++++++++\n");
+	mov1(data_ptr->movie_ptr, test);
+	printf("+++++++++++++++++++++++++++++++++\n");
+	Print_m(data_ptr);
+	printf("+++++++++++++++++++++++++++++++++\n");
+	mov1(data_ptr->movie_ptr, test);
+	printf("+++++++++++++++++++++++++++++++++\n");
+	Print_m(data_ptr);
+	printf("+++++++++++++++++++++++++++++++++\n");
+
+	// link_md (data_ptr->movie_ptr, data_ptr->director_ptr)
+	// void link_md (data_ptr->movie_ptr, data_ptr->director_ptr) {
+	// 	1. 디렉터 정보 (영화) vs 디렉터 이름
+	// 	2. 대표작 중 영화 (감독) vs 영화 이름
+	// }
+
+
 	char *input;
 	input = (char *)malloc(sizeof(char) * 50);
-	while(1)
-		ordersearch(data_ptr);
-	// Print_d_list(data_ptr);
-	// 	Print_m_list(data_ptr);
-	// 	Print_a_list(data_ptr);
-	// Print_m(data_ptr);
-	// Sort_m_t(data_ptr);
-	// Print_m(data_ptr);
-  //
-	// Print_d(data_ptr);
-	// Sort_d_m(data_ptr);
-	// Print_d(data_ptr);
-	// //
-	// Print_a(data_ptr);
-	// Sort_a_s(data_ptr);
-	// Print_a(data_ptr);
-  //
-	// FILE *optr_m = fopen("test1.txt", "a");
-	// FILE *optr_d = fopen("test2.txt", "a");
-	// FILE *optr_a = fopen("test3.txt", "a");
-  // //
-	// // add_movie_mode(optr_m, data_ptr->movie_ptr);
-	// // Print_m(data_ptr);
-	// add_actor_mode(optr_a, data_ptr->actor_ptr);
-	// Print_a(data_ptr);
-	// while (input != NULL) {
-	// 	 printf("(movie) ");
-	// 	 gets(input);
-	// 	 menu(input,data_ptr);
-	//  }
-	// printf("오류1\n");
-	// Print_m(data_ptr);
-	// printf("오류2\n");
-	// // ordersearch(data_ptr);
-	// if (strcmp((data_ptr -> actor_ptr -> movie_a -> next -> name), "king") == 0)
-	// {printf("오류3\n");
-	// 	printf("king\n" );}
-	// printf("%s",data_ptr -> actor_ptr -> movie_a -> next -> name);
-	// printf("오류4\n");
+
+	FILE *optr_m = fopen("test1.txt", "a");
+	FILE *optr_d = fopen("test2.txt", "a");
+	FILE *optr_a = fopen("test3.txt", "a");
+
+  add_actor_mode(optr_a, data_ptr->actor_ptr);
 }
